@@ -4,14 +4,14 @@
 const personalData = {
   // Basic Information
   name: "Nile Anderson",
-  tagline: "Software Engineer • AI Researcher • Follower of Christ",
+  tagline: "Software Engineer • AI and Robotics Enthusiast • Follower of Christ",
   email: "niletributary@gmail.com",
   location: "Oxford, England",
 
   // Hero Section
   hero: {
     greeting: "Hello, I'm",
-    description: "Software Engineer at Oxford's Computational Health Informatics Lab, working on intelligent sensing technologies for digital health. My work sits at the intersection of engineering, healthcare, and applied machine learning—guided by the ethos of Dominus Illuminatio Mea.",
+    description: "Software Engineer at Oxford's Computational Health Informatics Lab, working on remote monitoring technologies for digital health. My work sits at the intersection of engineering, healthcare, and applied machine learning. I desire to do all things for the Glory of Jesus my Saviour!",
     ctaButtons: [
       { text: "About", link: "#about" },
       { text: "Contact", link: "#contact" }
@@ -22,9 +22,9 @@ const personalData = {
   about: {
     title: "About Me",
     paragraphs: [
-      "I am a Software Engineer in the Computational Health Informatics (CHI) Lab at the University of Oxford, working under Professor David Clifton on intelligent sensing technologies for digital health. I contribute to the design and development of next-generation sensor systems that enrich physiological data streams, supporting improved clinical assessment, monitoring, and prediction. My work extends existing platforms with new sensing capabilities and underpins future applications of sensor-driven technologies across the lab's broader research in healthcare innovation.",
-      "My background is in Electronics Engineering, with experience in embedded systems design. I hold an MSc in Artificial Intelligence with Distinction from Oxford Brookes University, where my research focused on enhancing trajectory prediction models with formal uncertainty guarantees for safety-critical applications. I also hold a First Class Honours degree in Electronics Engineering from the University of the West Indies, Mona, where my studies focused on the design and implementation of embedded systems. Prior to engineering, I completed the pre-clinical years of the MBBS programme, gaining foundational knowledge in human physiology, neuroanatomy, and clinical medicine.",
-      "During my undergraduate years, I served as a Teaching Assistant for Circuit Analysis & Devices, Signals & Systems, and Analogue & Digital Communication Systems. I also led the Mona Engineering Society as President, fostering industry partnerships and student development, and served as First Vice-President of the UWI Mona Student Guild, representing student interests and coordinating university-wide initiatives for approximately 20,000 students.",
+      "I am a Software Engineer in the Computational Health Informatics (CHI) Lab at the University of Oxford, working under Professor David Clifton on remote monitoring technologies for digital health. I contribute to the design and development of sensor systems that enrich physiological data streams, supporting improved clinical assessment, monitoring, and prediction. My current work extends existing platforms with new sensing modalities and underpins future applications of sensor-driven technologies across the lab's broader research in healthcare innovation.",
+      "I hold an MSc in Artificial Intelligence with Distinction from Oxford Brookes University, where my research focused on enhancing trajectory prediction models with formal uncertainty guarantees for safety-critical applications. I also hold a First Class Honours degree in Electronics Engineering from the University of the West Indies, Mona, where my studies focused on the design and implementation of embedded systems.",
+      "During my undergraduate years, I served as a Teaching Assistant for Circuit Analysis & Devices, Signals & Systems, and Analogue & Digital Communication Systems. I also led the Mona Engineering Society as President, fostering industry partnerships and student development, and served as First Vice-President of the UWI Mona Student Guild, coordinating university-wide initiatives and representing student interests for approximately 20,000 students.",
       "I am a recipient of both the Governor General's Achievement Award and the Prime Minister's National Youth Award for Academics—Jamaica's premier honours for youth achievement—and in the Commonwealth Year of the Youth, was named among the 35 Under 35 in the Caribbean by the Caribbean Regional Youth Council. I am also a Rhodes Scholar (2024)."
     ]
   },

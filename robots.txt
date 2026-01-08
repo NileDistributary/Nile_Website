@@ -1,0 +1,12 @@
+# /robots.txt
+# Robots file for nileanderson.com
+
+User-agent: *
+Allow: /
+
+# Disallow sensitive areas
+Disallow: /contact.php
+Disallow: /assets/docs/
+
+# Sitemap location
+Sitemap: https://nileanderson.com/sitemap.xml

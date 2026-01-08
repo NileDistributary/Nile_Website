@@ -1,0 +1,24 @@
+{
+  "name": "Nile Anderson - Personal Website",
+  "short_name": "Nile Anderson",
+  "description": "AI Researcher & Robotics Enthusiast exploring the intersection of artificial intelligence, biomedical engineering, and faith-driven innovation.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFB",
+  "theme_color": "#0A4D68",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

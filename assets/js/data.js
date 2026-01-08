@@ -150,8 +150,9 @@ const personalData = {
   // Social Links
   social: {
     github: "https://github.com/NileRiva",
-    linkedin: "https://linkedin.com/in/nile-anderson",
-    email: "mailto:hello@nileanderson.com"
+    linkedin: "https://www.linkedin.com/in/nile-anderson-engineer/",
+    instagram: "https://www.instagram.com/__nilerivers/",
+    email: "mailto:niletributary@gmail.com"
   },
   
   // Footer

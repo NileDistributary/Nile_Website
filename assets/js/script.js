@@ -14,14 +14,30 @@
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const theme = savedTheme || (prefersDark ? 'dark' : 'light');
     html.setAttribute('data-theme', theme);
+
+    // Save initial theme if not already saved
+    if (!savedTheme) {
+      localStorage.setItem('theme', theme);
+    }
+
+    // Update button aria-pressed state
+    updateThemeButton(theme);
   }
-  
+
+  // Update theme toggle button state
+  function updateThemeButton(theme) {
+    if (themeToggle) {
+      themeToggle.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
+    }
+  }
+
   // Toggle theme
   function toggleTheme() {
-    const currentTheme = html.getAttribute('data-theme');
+    const currentTheme = html.getAttribute('data-theme') || 'light';
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
+    updateThemeButton(newTheme);
   }
   
   if (themeToggle) {

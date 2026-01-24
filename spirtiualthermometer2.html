@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lesson 141: Spiritual Thermometer</title>
+    <style>
+        :root {
+            --primary-blue: #246BB2;
+            --liquid-red: #cc0000;
+            --glass-grey: #e0e0e0;
+            --text-dark: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: var(--text-dark);
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.8rem;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row; /* Default: Side by Side */
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            max-width: 1000px;
+            width: 100%;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+
+        /* --- Thermometer Styles --- */
+        .thermometer-wrapper {
+            position: relative;
+            width: 200px; /* Wider container */
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-right: 40px;
+        }
+
+        .thermometer-glass {
+            width: 70px; /* Much wider tube */
+            height: 500px; /* Taller */
+            background: var(--glass-grey);
+            border-radius: 50px 50px 0 0;
+            border: 6px solid #555;
+            position: relative;
+            z-index: 2;
+            overflow: hidden; /* Keeps liquid inside */
+        }
+
+        .thermometer-bulb {
+            width: 130px; /* Big bulb */
+            height: 130px;
+            background: var(--liquid-red);
+            border-radius: 50%;
+            border: 6px solid #555;
+            margin-top: -20px;
+            z-index: 1;
+            box-shadow: inset -10px -10px 20px rgba(0,0,0,0.3);
+        }
+
+        .mercury {
+            width: 100%;
+            background: var(--liquid-red);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 5%; 
+            transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* --- High Visibility Ticks --- */
+        .ticks {
+            position: absolute;
+            height: 480px; /* Match internal height roughly */
+            top: 10px;
+            left: 80px; /* Push to right of tube */
+            display: flex;
+            flex-direction: column-reverse;
+            justify-content: space-around;
+            z-index: 0;
+        }
+
+        .tick-mark {
+            display: flex;
+            align-items: center;
+            font-weight: 800;
+            color: #222; /* Darker text */
+            font-size: 1.5rem; /* Bigger numbers */
+        }
+        
+        .tick-line {
+            width: 30px; /* Longer lines */
+            height: 5px; /* Thicker lines */
+            background: #222; /* Dark black lines */
+            margin-right: 15px;
+        }
+
+        /* --- Interactive Questions List --- */
+        .questions-list {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .question-item {
+            padding: 15px 20px;
+            border: 3px solid #ddd; /* Thicker border */
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            background: #fff;
+            font-size: 1.1rem;
+        }
+
+        .question-item:active {
+            transform: scale(0.98);
+        }
+
+        .question-item:hover {
+            border-color: #bbb;
+            background-color: #fafafa;
+        }
+
+        /* Active State (Selected) */
+        .question-item.active {
+            background-color: #e6f7ff;
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(36, 107, 178, 0.2);
+        }
+
+        .number-badge {
+            background: #666;
+            color: white;
+            min-width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        .question-item.active .number-badge {
+            background: var(--primary-blue);
+        }
+
+        .reset-btn {
+            margin-top: 20px;
+            padding: 12px 25px;
+            background-color: #4A4A4A;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            width: 100%;
+            max-width: 200px;
+            align-self: center;
+        }
+
+        /* --- MOBILE ADAPTIVE (Responsive) --- */
+        @media (max-width: 768px) {
+            h1 { font-size: 1.4rem; }
+            
+            .container {
+                flex-direction: column; /* Stack vertically */
+                padding: 20px;
+            }
+
+            .thermometer-wrapper {
+                margin-right: 0;
+                margin-bottom: 30px;
+                transform: scale(0.9); /* Slight shrink to fit phone width */
+            }
+
+            .ticks {
+                left: 65px; /* Adjust tick position for mobile */
+            }
+
+            .question-item {
+                font-size: 1rem;
+                padding: 12px;
+            }
+            
+            .number-badge {
+                min-width: 30px;
+                height: 30px;
+                margin-right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Degrees Spiritual</h1>
+
+    <div class="container">
+        <div class="thermometer-wrapper">
+            <div class="thermometer-glass">
+                <div class="mercury" id="mercury"></div>
+            </div>
+            <div class="thermometer-bulb"></div>
+            
+            <div class="ticks">
+                <div class="tick-mark"><div class="tick-line"></div> 6</div>
+                <div class="tick-mark"><div class="tick-line"></div> 5</div>
+                <div class="tick-mark"><div class="tick-line"></div> 4</div>
+                <div class="tick-mark"><div class="tick-line"></div> 3</div>
+                <div class="tick-mark"><div class="tick-line"></div> 2</div>
+                <div class="tick-mark"><div class="tick-line"></div> 1</div>
+            </div>
+        </div>
+
+        <div class="questions-list">
+            <div class="question-item" onclick="setLevel(6)">
+                <div class="number-badge">6</div>
+                <div>Certain you belong to the Lord forever?</div>
+            </div>
+            <div class="question-item" onclick="setLevel(5)">
+                <div class="number-badge">5</div>
+                <div>Have you felt Satan's attacks?</div>
+            </div>
+            <div class="question-item" onclick="setLevel(4)">
+                <div class="number-badge">4</div>
+                <div>Do you really pray?</div>
+            </div>
+            <div class="question-item" onclick="setLevel(3)">
+                <div class="number-badge">3</div>
+                <div>Do you like to be with other Christians?</div>
+            </div>
+            <div class="question-item" onclick="setLevel(2)">
+                <div class="number-badge">2</div>
+                <div>Do you read and love His Word?</div>
+            </div>
+            <div class="question-item" onclick="setLevel(1)">
+                <div class="number-badge">1</div>
+                <div>Do you know the Lord personally?</div>
+            </div>
+
+            <button class="reset-btn" onclick="setLevel(0)">Reset (Joash Failure)</button>
+        </div>
+    </div>
+
+    <script>
+        function setLevel(level) {
+            // 1. Update Mercury Height
+            const mercury = document.getElementById('mercury');
+            
+            // Calculation: 
+            // Level 0 = 5% (Just visible in bulb)
+            // Level 6 = 95% (Top)
+            // The step is roughly 15% per level
+            let heightPercentage = 5; 
+            if (level > 0) {
+                heightPercentage = (level * 15) + 5; 
+            }
+            mercury.style.height = heightPercentage + "%";
+
+            // 2. Update Active States
+            // We get all items and reverse them so Index 0 = Question 1
+            const items = Array.from(document.querySelectorAll('.question-item')).reverse();
+            
+            // Reset all first
+            items.forEach(item => item.classList.remove('active'));
+
+            // Highlight everything up to the selected level (showing "Growth")
+            // OR if you want to highlight only the current step, change logic here.
+            // Current logic: Highlights all steps achieved so far.
+            for (let i = 0; i < level; i++) {
+                if(items[i]) items[i].classList.add('active');
+            }
+        }
+
+        // --- ON LOAD: Start Full ---
+        window.onload = function() {
+            setLevel(6); // Sets default to full
+        };
+    </script>
+
+</body>
+</html>

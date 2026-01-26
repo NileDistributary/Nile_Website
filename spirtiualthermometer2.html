@@ -49,12 +49,40 @@
         /* --- Thermometer Styles --- */
         .thermometer-wrapper {
             position: relative;
-            width: 200px; /* Wider container */
+            width: 240px; /* Wider container */
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             margin-right: 40px;
+        }
+
+        .thermo-3d {
+            width: 200px;
+            height: 560px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .thermo-3d canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .thermo-2d {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        body.is-3d .thermo-2d {
+            display: none;
+        }
+
+        body.is-3d .thermo-3d {
+            filter: drop-shadow(0 14px 20px rgba(0, 0, 0, 0.25));
         }
 
         .thermometer-glass {
@@ -94,11 +122,11 @@
             position: absolute;
             height: 480px; /* Match internal height roughly */
             top: 10px;
-            left: 80px; /* Push to right of tube */
+            left: 150px; /* Push to right of tube */
             display: flex;
             flex-direction: column-reverse;
             justify-content: space-around;
-            z-index: 0;
+            z-index: 3;
         }
 
         .tick-mark {
@@ -204,7 +232,7 @@
             }
 
             .ticks {
-                left: 65px; /* Adjust tick position for mobile */
+                left: 130px; /* Adjust tick position for mobile */
             }
 
             .question-item {
@@ -226,10 +254,13 @@
 
     <div class="container">
         <div class="thermometer-wrapper">
-            <div class="thermometer-glass">
-                <div class="mercury" id="mercury"></div>
+            <div class="thermo-3d" id="thermo-3d" aria-hidden="true"></div>
+            <div class="thermo-2d">
+                <div class="thermometer-glass">
+                    <div class="mercury" id="mercury"></div>
+                </div>
+                <div class="thermometer-bulb"></div>
             </div>
-            <div class="thermometer-bulb"></div>
             
             <div class="ticks">
                 <div class="tick-mark"><div class="tick-line"></div> 6</div>
@@ -272,8 +303,13 @@
     </div>
 
     <script>
+        let currentLevel = 6;
+        let setMercuryLevel3D = null;
+
         function setLevel(level) {
-            // 1. Update Mercury Height
+            currentLevel = level;
+
+            // 1. Update Mercury Height (2D fallback)
             const mercury = document.getElementById('mercury');
             
             // Calculation: 
@@ -284,7 +320,9 @@
             if (level > 0) {
                 heightPercentage = (level * 15) + 5; 
             }
-            mercury.style.height = heightPercentage + "%";
+            if (mercury) {
+                mercury.style.height = heightPercentage + "%";
+            }
 
             // 2. Update Active States
             // We get all items and reverse them so Index 0 = Question 1
@@ -299,12 +337,179 @@
             for (let i = 0; i < level; i++) {
                 if(items[i]) items[i].classList.add('active');
             }
+
+            if (typeof setMercuryLevel3D === 'function') {
+                setMercuryLevel3D(level);
+            }
+        }
+
+        function initThreeThermometer() {
+            const container = document.getElementById('thermo-3d');
+            if (!container || !window.WebGLRenderingContext) {
+                return;
+            }
+
+            import('https://unpkg.com/three@0.152.2/build/three.module.js')
+                .then((THREE) => {
+                    if (!container.isConnected) {
+                        return;
+                    }
+
+                    document.body.classList.add('is-3d');
+
+                    const scene = new THREE.Scene();
+                    const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
+                    camera.position.set(0, 1.2, 6);
+
+                    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                    renderer.setPixelRatio(window.devicePixelRatio || 1);
+                    renderer.setClearColor(0x000000, 0);
+                    if ('outputColorSpace' in renderer) {
+                        renderer.outputColorSpace = THREE.SRGBColorSpace;
+                    } else if ('outputEncoding' in renderer) {
+                        renderer.outputEncoding = THREE.sRGBEncoding;
+                    }
+                    container.appendChild(renderer.domElement);
+
+                    const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+                    scene.add(ambient);
+
+                    const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
+                    keyLight.position.set(4, 6, 4);
+                    scene.add(keyLight);
+
+                    const warmGlow = new THREE.PointLight(0xff5a5a, 0.8, 10);
+                    warmGlow.position.set(0, -1.2, 2);
+                    scene.add(warmGlow);
+
+                    const glassMat = new THREE.MeshPhysicalMaterial({
+                        color: 0xffffff,
+                        transparent: true,
+                        opacity: 0.35,
+                        roughness: 0.15,
+                        metalness: 0,
+                        transmission: 0.9,
+                        thickness: 0.6,
+                        ior: 1.5,
+                        clearcoat: 1,
+                        clearcoatRoughness: 0.1
+                    });
+
+                    const mercuryMat = new THREE.MeshStandardMaterial({
+                        color: 0xc20000,
+                        roughness: 0.25,
+                        metalness: 0.1,
+                        emissive: 0x9a0000,
+                        emissiveIntensity: 0.4
+                    });
+
+                    const tubeHeight = 4.6;
+                    const tubeRadius = 0.5;
+                    const tubeCenterY = 1.4;
+                    const tubeBottomY = tubeCenterY - tubeHeight / 2;
+
+                    const glass = new THREE.Mesh(
+                        new THREE.CylinderGeometry(tubeRadius, tubeRadius, tubeHeight, 48),
+                        glassMat
+                    );
+                    glass.position.y = tubeCenterY;
+                    scene.add(glass);
+
+                    const mercuryMesh = new THREE.Mesh(
+                        new THREE.CylinderGeometry(tubeRadius * 0.62, tubeRadius * 0.62, tubeHeight, 32),
+                        mercuryMat
+                    );
+                    mercuryMesh.position.y = tubeBottomY;
+                    scene.add(mercuryMesh);
+
+                    const bulbRadius = 0.85;
+                    const bulbCenterY = tubeBottomY - bulbRadius * 0.4;
+
+                    const bulbGlass = new THREE.Mesh(
+                        new THREE.SphereGeometry(bulbRadius, 48, 32),
+                        glassMat
+                    );
+                    bulbGlass.position.y = bulbCenterY;
+                    scene.add(bulbGlass);
+
+                    const bulbMercury = new THREE.Mesh(
+                        new THREE.SphereGeometry(bulbRadius * 0.78, 48, 32),
+                        mercuryMat
+                    );
+                    bulbMercury.position.y = bulbCenterY;
+                    scene.add(bulbMercury);
+
+                    const rim = new THREE.Mesh(
+                        new THREE.TorusGeometry(tubeRadius + 0.08, 0.06, 16, 60),
+                        new THREE.MeshStandardMaterial({ color: 0x303030, roughness: 0.5, metalness: 0.8 })
+                    );
+                    rim.rotation.x = Math.PI / 2;
+                    rim.position.y = tubeCenterY + tubeHeight / 2;
+                    scene.add(rim);
+
+                    const base = new THREE.Mesh(
+                        new THREE.CylinderGeometry(1.1, 1.3, 0.35, 32),
+                        new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.6, metalness: 0.3 })
+                    );
+                    base.position.y = bulbCenterY - bulbRadius * 1.1;
+                    scene.add(base);
+
+                    setMercuryLevel3D = (level) => {
+                        const basePct = 0.05;
+                        const stepPct = 0.15;
+                        const pct = level > 0 ? Math.min(0.95, basePct + level * stepPct) : basePct;
+                        const fillHeight = tubeHeight * pct;
+                        const scaleY = Math.max(0.02, fillHeight / tubeHeight);
+                        mercuryMesh.scale.set(1, scaleY, 1);
+                        mercuryMesh.position.y = tubeBottomY + fillHeight / 2;
+
+                        const glowIntensity = 0.3 + pct * 0.9;
+                        mercuryMat.emissiveIntensity = glowIntensity;
+                        warmGlow.intensity = 0.5 + pct * 1.2;
+                    };
+
+                    const resize = () => {
+                        const width = container.clientWidth;
+                        const height = container.clientHeight;
+                        if (!width || !height) {
+                            return;
+                        }
+                        renderer.setSize(width, height, false);
+                        camera.aspect = width / height;
+                        camera.updateProjectionMatrix();
+                    };
+
+                    resize();
+                    window.addEventListener('resize', resize);
+
+                    const clock = new THREE.Clock();
+                    const animate = () => {
+                        const t = clock.getElapsedTime();
+                        const sway = Math.sin(t * 0.6) * 0.06;
+                        glass.rotation.y = sway;
+                        mercuryMesh.rotation.y = sway;
+                        bulbGlass.rotation.y = sway;
+                        bulbMercury.rotation.y = sway;
+                        rim.rotation.y = sway;
+                        base.rotation.y = sway * 0.4;
+
+                        renderer.render(scene, camera);
+                        requestAnimationFrame(animate);
+                    };
+
+                    animate();
+                    setMercuryLevel3D(currentLevel);
+                })
+                .catch(() => {
+                    // Keep 2D fallback if Three.js fails.
+                });
         }
 
         // --- ON LOAD: Start Full ---
-        window.onload = function() {
-            setLevel(6); // Sets default to full
-        };
+        window.addEventListener('load', () => {
+            setLevel(currentLevel);
+            initThreeThermometer();
+        });
     </script>
 
 </body>

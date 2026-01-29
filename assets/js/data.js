@@ -37,7 +37,7 @@ const personalData = {
       text: "If you declare with your mouth, 'Jesus is Lord,' and believe in your heart that God raised him from the dead, you will be saved. For it is with your heart that you believe and are justified, and it is with your mouth that you profess your faith and are saved. As Scripture says, 'Anyone who believes in him will never be put to shame.'",
       reference: "Romans 10:9-11 (NIV)"
     },
-    closingNote: "I am part of the Rhodes Christian Fellowship, where I meet with other Christian scholars for Bible study and time together in community. Beyond my academic and research commitments, when not in the lab or at fellowship, I can be found working my 'two left feet' on the field with Rhodes F.C."
+    closingNote: ""
   },
 
   // Education Timeline

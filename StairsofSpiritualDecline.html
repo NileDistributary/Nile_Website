@@ -390,4 +390,58 @@
              .to(shake, { x:  0.26, y: -0.18, z:  0.14, duration: 0.05, ease: "none" })
              .to(shake, { x: -0.30, y:  0.22, z: -0.12, duration: 0.05, ease: "none" })
              .to(shake, { x:  0.20, y: -0.14, z:  0.06, duration: 0.05, ease: "none" })
-             .to(shake, { x:  0.00, y:  0.00, z:  0.00, du
+             .to(shake, { x:  0.00, y:  0.00, z:  0.00, duration: 0.10, ease: "power2.out" });
+
+      // Overlay explosion
+      const overlayTl = gsap.timeline({ delay: 0.05 });
+      overlayTl
+        .set(disasterOverlay, { opacity: 1 })
+        .to(disasterFlash, { opacity: 1, duration: 0.12, ease: "power1.out" }, 0)
+        .to(disasterFlash, { opacity: 0.75, duration: 0.35, ease: "power2.out" }, 0.12)
+        .to(disasterText,  { opacity: 1, scale: 1.0, duration: 0.22, ease: "power4.out" }, 0.08)
+        .to(disasterText,  { scale: 1.08, duration: 0.28, ease: "sine.inOut" }, 0.30)
+        .to(disasterText,  { scale: 1.02, duration: 0.45, ease: "power2.out" }, 0.58);
+
+      // Final UI state
+      btn.textContent = "Disaster Triggered";
+      stageNumEl.textContent = "STAGE 5/5";
+      stageTextEl.textContent = "National Disaster";
+
+      // Dim scene a bit after impact
+      gsap.to(scene.fog, { density: 0.09, duration: 1.0, ease: "power2.out" });
+    }
+
+    // ---------- Render loop ----------
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+
+      // A tiny, slow “breathing” of light for seriousness (very subtle)
+      flashlight.intensity += Math.sin(clock.elapsedTime * 0.9) * 0.002;
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // ---------- Responsiveness ----------
+    window.addEventListener("resize", () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    });
+
+    // Optional: keyboard support (Space/Enter)
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space" || e.code === "Enter") {
+        e.preventDefault();
+        goNextStage();
+      }
+    });
+  </script>
+</body>
+</html>

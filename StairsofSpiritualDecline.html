@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>The Word of Warning — 3D Visual Aid</title>
+  <style>
+    :root {
+      --bg: #050608;
+      --panel: rgba(12, 14, 18, 0.72);
+      --panel-border: rgba(255,255,255,0.12);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.70);
+      --danger: #ff2b2b;
+    }
+
+    html, body { height: 100%; margin: 0; background: var(--bg); overflow: hidden; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    #app { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; }
+
+    /* UI overlay */
+    #ui {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%);
+      width: min(900px, calc(100% - 28px));
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 14px;
+      border-radius: 16px;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+      user-select: none;
+    }
+
+    #stageLabel {
+      line-height: 1.25;
+      color: var(--text);
+      font-size: clamp(14px, 2.4vw, 18px);
+      letter-spacing: 0.2px;
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+
+    #stageNum {
+      color: var(--muted);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.8px;
+    }
+
+    #stageText { font-weight: 650; }
+
+    #btn {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 140ms ease, background 140ms ease, border-color 140ms ease, opacity 140ms ease;
+      min-width: 140px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    #btn:hover { transform: translateY(-1px); background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.22); }
+    #btn:active { transform: translateY(0px) scale(0.99); }
+    #btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+    /* Disaster overlay */
+    #disasterOverlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      opacity: 0;
+    }
+    #disasterOverlay .backflash {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(255,40,40,0.25), rgba(255,10,10,0.10) 40%, rgba(0,0,0,0.92) 75%);
+      opacity: 0;
+      transform: scale(1.05);
+    }
+    #disasterOverlay .text {
+      position: relative;
+      font-weight: 950;
+      letter-spacing: 0.18em;
+      color: rgba(255, 45, 45, 0.98);
+      text-shadow:
+        0 0 18px rgba(255, 50, 50, 0.35),
+        0 0 60px rgba(255, 50, 50, 0.20),
+        0 18px 90px rgba(0,0,0,0.65);
+      font-size: clamp(42px, 10vw, 120px);
+      transform: scale(0.35);
+      opacity: 0;
+    }
+
+    /* Small hint (top-left) */
+    #hint {
+      position: fixed;
+      left: 14px;
+      top: 14px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(12, 14, 18, 0.62);
+      border: 1px solid rgba(255,255,255,0.10);
+      color: rgba(255,255,255,0.70);
+      font-size: 12px;
+      letter-spacing: 0.2px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <div id="hint">The Word of Warning • 3D Staircase of Spiritual Decline</div>
+
+  <div id="ui" role="group" aria-label="Lesson controls">
+    <div id="stageLabel" aria-live="polite">
+      <span id="stageNum">STAGE 1/5</span>
+      <span id="stageText">The Enjoyment of Prosperity</span>
+    </div>
+    <button id="btn" type="button">Next Stage</button>
+  </div>
+
+  <div id="disasterOverlay" aria-hidden="true">
+    <div class="backflash"></div>
+    <div class="text">DISASTER</div>
+  </div>
+
+  <script type="module">
+    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+    import { gsap } from "https://cdn.skypack.dev/gsap@3.12.5";
+
+    // ---------- Basic setup ----------
+    const container = document.getElementById("app");
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x050608, 1);
+    container.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x050608, 0.06);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.05, 200);
+    // Add a "flashlight" PointLight attached to camera
+    const flashlight = new THREE.PointLight(0xffffff, 2.2, 28, 2.0);
+    flashlight.position.set(0, 0.3, 0.6); // in camera space
+    camera.add(flashlight);
+    scene.add(camera);
+
+    // Very low ambient so the spotlight matters
+    const ambient = new THREE.AmbientLight(0xffffff, 0.05);
+    scene.add(ambient);
+
+    // Subtle fill (kept dim)
+    const hemi = new THREE.HemisphereLight(0x7aa0ff, 0x220000, 0.08);
+    scene.add(hemi);
+
+    // ---------- Staircase ----------
+    const stages = [
+      "The Enjoyment of Prosperity",
+      "The Neglect of God’s Laws",
+      "Ingratitude to God",
+      "Flirtation with Other Gods",
+      "Persecution of the Lord’s Messengers",
+    ];
+
+    // Color progression: Prosperity Green -> deeper/darker Warning Red
+    const stepColors = [
+      new THREE.Color("#1fbf5b"), // Prosperity Green
+      new THREE.Color("#77a833"),
+      new THREE.Color("#a86a22"),
+      new THREE.Color("#b8321f"),
+      new THREE.Color("#7a0b0b"), // Dark Warning Red
+    ];
+
+    const stair = new THREE.Group();
+    scene.add(stair);
+
+    const STEP_COUNT = 5;
+    const stepW = 7.2, stepH = 1.0, stepD = 4.2;
+    const gapZ = 4.7;     // spacing to prevent overlap
+    const dropY = 1.35;   // vertical drop per stage
+    const steps = [];
+
+    const geom = new THREE.BoxGeometry(stepW, stepH, stepD);
+    geom.computeVertexNormals();
+
+    for (let i = 0; i < STEP_COUNT; i++) {
+      const mat = new THREE.MeshStandardMaterial({
+        color: stepColors[i].clone(),
+        roughness: 0.75,
+        metalness: 0.05,
+        emissive: new THREE.Color("#000000"),
+        emissiveIntensity: 0.0
+      });
+
+      const mesh = new THREE.Mesh(geom, mat);
+      // Arrange like a descending staircase along -Z, lowering in Y
+      mesh.position.set(0, -i * dropY, -i * gapZ);
+      mesh.castShadow = false;
+      mesh.receiveShadow = false;
+      stair.add(mesh);
+      steps.push(mesh);
+    }
+
+    // A dark floor far below to ground the scene (kept subtle)
+    const floorGeom = new THREE.PlaneGeometry(120, 220);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x040406, roughness: 1.0, metalness: 0.0 });
+    const floor = new THREE.Mesh(floorGeom, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -10;
+    floor.position.z = -40;
+    scene.add(floor);
+
+    // ---------- Camera positions & lookAt targets ----------
+    function treadCenter(i) {
+      // Top face center of step i
+      const s = steps[i];
+      return new THREE.Vector3(s.position.x, s.position.y + stepH / 2, s.position.z);
+    }
+
+    function cameraPoseForStep(i) {
+      const t = treadCenter(i);
+      // First-person-ish: slightly above tread, a bit behind it (toward +Z)
+      return new THREE.Vector3(t.x, t.y + 1.55, t.z + 3.15);
+    }
+
+    // Start at stage 0 looking at stage 0 tread
+    let currentStage = 0;
+    camera.position.copy(cameraPoseForStep(0));
+    camera.lookAt(treadCenter(0));
+
+    // ---------- UI ----------
+    const stageNumEl = document.getElementById("stageNum");
+    const stageTextEl = document.getElementById("stageText");
+    const btn = document.getElementById("btn");
+
+    function updateLabel() {
+      stageNumEl.textContent = `STAGE ${Math.min(currentStage + 1, 5)}/5`;
+      stageTextEl.textContent = stages[Math.min(currentStage, 4)];
+    }
+    updateLabel();
+
+    // Fade previous steps into darkness so current/next step reads clearly
+    function updateStepVisibility(instant = false) {
+      for (let i = 0; i < STEP_COUNT; i++) {
+        const mat = steps[i].material;
+        const isPast = i < currentStage;
+        const isCurrentOrFuture = i >= currentStage;
+
+        const targetColor = stepColors[i].clone();
+        const targetEmissiveIntensity = 0.0;
+
+        // Past steps: dim strongly (keep their hue but darken)
+        const dimFactor = isPast ? 0.14 : 1.0;
+        const finalColor = targetColor.multiplyScalar(dimFactor);
+
+        const to = {
+          r: finalColor.r,
+          g: finalColor.g,
+          b: finalColor.b,
+          e: targetEmissiveIntensity
+        };
+
+        if (instant) {
+          mat.color.setRGB(to.r, to.g, to.b);
+          mat.emissiveIntensity = to.e;
+        } else {
+          gsap.to(mat.color, { r: to.r, g: to.g, b: to.b, duration: 0.55, ease: "power2.out" });
+          gsap.to(mat, { emissiveIntensity: to.e, duration: 0.55, ease: "power2.out" });
+        }
+
+        // Slightly “hint” the next step by a tiny emissive pulse
+        if (isCurrentOrFuture && i === currentStage) {
+          gsap.to(mat, { emissiveIntensity: 0.06, duration: 0.4, yoyo: true, repeat: 1, ease: "sine.inOut" });
+        }
+      }
+    }
+    updateStepVisibility(true);
+
+    // ---------- Curved camera descent ----------
+    let isMoving = false;
+
+    function moveCameraArc(from, control, to, lookTarget, duration = 1.25) {
+      isMoving = true;
+      btn.disabled = true;
+
+      const state = { t: 0 };
+      return gsap.to(state, {
+        t: 1,
+        duration,
+        ease: "power2.inOut",
+        onUpdate: () => {
+          const t = state.t;
+          // Quadratic Bezier: B(t) = (1-t)^2*P0 + 2(1-t)t*P1 + t^2*P2
+          const one = 1 - t;
+          const x = one*one*from.x + 2*one*t*control.x + t*t*to.x;
+          const y = one*one*from.y + 2*one*t*control.y + t*t*to.y;
+          const z = one*one*from.z + 2*one*t*control.z + t*t*to.z;
+          camera.position.set(x, y, z);
+
+          // Always face the tread of the NEXT step during descent
+          camera.lookAt(lookTarget);
+        },
+        onComplete: () => {
+          isMoving = false;
+          btn.disabled = false;
+        }
+      });
+    }
+
+    function goNextStage() {
+      if (isMoving) return;
+
+      if (currentStage < STEP_COUNT - 1) {
+        const nextStage = currentStage + 1;
+
+        const from = camera.position.clone();
+        const to = cameraPoseForStep(nextStage);
+
+        // Control point: arc upward and slightly to the side so it feels like a step-down curve
+        const mid = from.clone().lerp(to, 0.5);
+        const control = mid.clone().add(new THREE.Vector3(
+          (nextStage % 2 === 0 ? 0.9 : -0.9),  // subtle side sway
+          1.15,                                 // lift for the arc
+          0.25                                  // tiny forward bias
+        ));
+
+        currentStage = nextStage;
+        updateLabel();
+        updateStepVisibility(false);
+
+        const lookTarget = treadCenter(nextStage);
+        moveCameraArc(from, control, to, lookTarget, 1.2);
+
+        if (currentStage === STEP_COUNT - 1) {
+          btn.textContent = "Trigger Disaster";
+        }
+      } else {
+        triggerDisaster();
+      }
+    }
+
+    btn.addEventListener("click", goNextStage);
+
+    // ---------- Disaster event ----------
+    const disasterOverlay = document.getElementById("disasterOverlay");
+    const disasterText = disasterOverlay.querySelector(".text");
+    const disasterFlash = disasterOverlay.querySelector(".backflash");
+
+    function triggerDisaster() {
+      if (isMoving) return;
+      isMoving = true;
+      btn.disabled = true;
+
+      // Harden lighting for dramatic contrast
+      gsap.to(flashlight, { intensity: 3.2, duration: 0.15, yoyo: true, repeat: 1, ease: "power1.inOut" });
+
+      // Camera shake: rapid randomized offsets around current position
+      const basePos = camera.position.clone();
+      const shake = { x: 0, y: 0, z: 0 };
+
+      const shakeTl = gsap.timeline({
+        onUpdate: () => {
+          camera.position.set(basePos.x + shake.x, basePos.y + shake.y, basePos.z + shake.z);
+          camera.lookAt(treadCenter(4));
+        }
+      });
+
+      shakeTl.to(shake, { x:  0.18, y: -0.12, z:  0.10, duration: 0.05, ease: "none" })
+             .to(shake, { x: -0.22, y:  0.16, z: -0.08, duration: 0.05, ease: "none" })
+             .to(shake, { x:  0.26, y: -0.18, z:  0.14, duration: 0.05, ease: "none" })
+             .to(shake, { x: -0.30, y:  0.22, z: -0.12, duration: 0.05, ease: "none" })
+             .to(shake, { x:  0.20, y: -0.14, z:  0.06, duration: 0.05, ease: "none" })
+             .to(shake, { x:  0.00, y:  0.00, z:  0.00, du

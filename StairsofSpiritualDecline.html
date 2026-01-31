@@ -5,137 +5,89 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>The Word of Warning — 3D Visual Aid</title>
   <style>
-    :root {
-      --bg: #050608;
-      --panel: rgba(12, 14, 18, 0.72);
-      --panel-border: rgba(255,255,255,0.12);
-      --text: rgba(255,255,255,0.92);
-      --muted: rgba(255,255,255,0.70);
-      --danger: #ff2b2b;
+    :root{
+      --bg:#050608;
+      --panel:rgba(12,14,18,.72);
+      --panel-border:rgba(255,255,255,.12);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.70);
     }
+    html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    #app{position:fixed;inset:0}
+    canvas{display:block;width:100%;height:100%}
 
-    html, body { height: 100%; margin: 0; background: var(--bg); overflow: hidden; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    #app { position: fixed; inset: 0; }
-    canvas { display: block; width: 100%; height: 100%; }
-
-    /* UI overlay */
-    #ui {
-      position: fixed;
-      left: 50%;
-      bottom: 20px;
-      transform: translateX(-50%);
-      width: min(900px, calc(100% - 28px));
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      align-items: center;
-      padding: 14px 14px;
-      border-radius: 16px;
-      background: var(--panel);
-      border: 1px solid var(--panel-border);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
-      user-select: none;
+    #ui{
+      position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
+      width:min(980px,calc(100% - 28px));
+      display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;
+      padding:16px;border-radius:18px;
+      background:var(--panel);border:1px solid var(--panel-border);
+      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+      box-shadow:0 12px 44px rgba(0,0,0,.5);
+      user-select:none;z-index:10;
     }
-
-    #stageLabel {
-      line-height: 1.25;
-      color: var(--text);
-      font-size: clamp(14px, 2.4vw, 18px);
-      letter-spacing: 0.2px;
-      display: flex;
-      gap: 10px;
-      align-items: baseline;
-      flex-wrap: wrap;
+    #stepLabel{display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;line-height:1.15;color:var(--text);}
+    #stepNum{
+      font-weight:950;letter-spacing:.10em;
+      font-size:clamp(13px,2vw,16px);
+      color:rgba(255,255,255,.78);
+      padding:.25em .55em;border-radius:999px;
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.06);
     }
-
-    #stageNum {
-      color: var(--muted);
-      font-weight: 700;
-      font-variant-numeric: tabular-nums;
-      letter-spacing: 0.8px;
+    #stepText{
+      font-weight:900;
+      font-size:clamp(18px,3vw,26px);
+      letter-spacing:.02em;
+      text-shadow:0 10px 30px rgba(0,0,0,.6);
     }
-
-    #stageText { font-weight: 650; }
-
-    #btn {
-      appearance: none;
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.08);
-      color: var(--text);
-      padding: 10px 14px;
-      border-radius: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 140ms ease, background 140ms ease, border-color 140ms ease, opacity 140ms ease;
-      min-width: 140px;
-      text-align: center;
-      white-space: nowrap;
+    #btn{
+      appearance:none;border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.10);color:var(--text);
+      padding:12px 16px;border-radius:16px;
+      font-weight:900;cursor:pointer;
+      transition:transform 140ms ease, background 140ms ease, border-color 140ms ease, opacity 140ms ease;
+      min-width:160px;text-align:center;white-space:nowrap;
     }
-    #btn:hover { transform: translateY(-1px); background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.22); }
-    #btn:active { transform: translateY(0px) scale(0.99); }
-    #btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+    #btn:hover{transform:translateY(-1px);background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.24)}
+    #btn:active{transform:translateY(0px) scale(.99)}
+    #btn[disabled]{opacity:.45;cursor:not-allowed}
 
-    /* Disaster overlay */
-    #disasterOverlay {
-      position: fixed;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      pointer-events: none;
-      opacity: 0;
+    #disasterOverlay{
+      position:fixed;inset:0;display:grid;place-items:center;
+      pointer-events:none;opacity:0;z-index:20;
     }
-    #disasterOverlay .backflash {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 50% 50%, rgba(255,40,40,0.25), rgba(255,10,10,0.10) 40%, rgba(0,0,0,0.92) 75%);
-      opacity: 0;
-      transform: scale(1.05);
+    #disasterOverlay .backflash{
+      position:absolute;inset:0;
+      background:radial-gradient(circle at 50% 50%,
+        rgba(255,40,40,.28),
+        rgba(255,10,10,.12) 40%,
+        rgba(0,0,0,.92) 75%);
+      opacity:0;transform:scale(1.06);
     }
-    #disasterOverlay .text {
-      position: relative;
-      font-weight: 950;
-      letter-spacing: 0.18em;
-      color: rgba(255, 45, 45, 0.98);
-      text-shadow:
-        0 0 18px rgba(255, 50, 50, 0.35),
-        0 0 60px rgba(255, 50, 50, 0.20),
-        0 18px 90px rgba(0,0,0,0.65);
-      font-size: clamp(42px, 10vw, 120px);
-      transform: scale(0.35);
-      opacity: 0;
-    }
-
-    /* Small hint (top-left) */
-    #hint {
-      position: fixed;
-      left: 14px;
-      top: 14px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      background: rgba(12, 14, 18, 0.62);
-      border: 1px solid rgba(255,255,255,0.10);
-      color: rgba(255,255,255,0.70);
-      font-size: 12px;
-      letter-spacing: 0.2px;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      user-select: none;
+    #disasterOverlay .text{
+      position:relative;
+      font-weight:1000;letter-spacing:.18em;
+      color:rgba(255,45,45,.98);
+      text-shadow:0 0 18px rgba(255,50,50,.35),
+                  0 0 60px rgba(255,50,50,.20),
+                  0 18px 90px rgba(0,0,0,.65);
+      font-size:clamp(44px,11vw,140px);
+      transform:scale(.35);
+      opacity:0;
+      will-change: transform;
     }
   </style>
 </head>
 <body>
   <div id="app"></div>
 
-  <div id="hint">The Word of Warning • 3D Staircase of Spiritual Decline</div>
-
   <div id="ui" role="group" aria-label="Lesson controls">
-    <div id="stageLabel" aria-live="polite">
-      <span id="stageNum">STAGE 1/5</span>
-      <span id="stageText">The Enjoyment of Prosperity</span>
+    <div id="stepLabel" aria-live="polite">
+      <span id="stepNum">STEP 1/5</span>
+      <span id="stepText">The Enjoyment of Prosperity</span>
     </div>
-    <button id="btn" type="button">Next Stage</button>
+    <button id="btn" type="button">Next Step</button>
   </div>
 
   <div id="disasterOverlay" aria-hidden="true">
@@ -147,34 +99,46 @@
     import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
     import { gsap } from "https://cdn.skypack.dev/gsap@3.12.5";
 
-    // ---------- Basic setup ----------
+    // ---------------------------
+    // Scene setup (brighter overall, still moody)
+    // ---------------------------
     const container = document.getElementById("app");
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x050608, 1);
+    renderer.setClearColor(0x07080b, 1);
     container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x050608, 0.06);
 
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.05, 200);
-    // Add a "flashlight" PointLight attached to camera
-    const flashlight = new THREE.PointLight(0xffffff, 2.2, 28, 2.0);
-    flashlight.position.set(0, 0.3, 0.6); // in camera space
+    // Less fog = less "lost in the dark"
+    scene.fog = new THREE.FogExp2(0x07080b, 0.018);
+
+    const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.05, 260);
+
+    // Flashlight point light attached to camera
+    const flashlight = new THREE.PointLight(0xffffff, 2.4, 70, 2.0);
+    flashlight.position.set(0.2, 0.35, 0.55);
     camera.add(flashlight);
     scene.add(camera);
 
-    // Very low ambient so the spotlight matters
-    const ambient = new THREE.AmbientLight(0xffffff, 0.05);
-    scene.add(ambient);
+    // Base lighting increased
+    scene.add(new THREE.AmbientLight(0xffffff, 0.16));
+    scene.add(new THREE.HemisphereLight(0x6c92ff, 0x220000, 0.20));
 
-    // Subtle fill (kept dim)
-    const hemi = new THREE.HemisphereLight(0x7aa0ff, 0x220000, 0.08);
-    scene.add(hemi);
+    const rim = new THREE.DirectionalLight(0xffffff, 0.30);
+    rim.position.set(10, 14, 12);
+    scene.add(rim);
 
-    // ---------- Staircase ----------
-    const stages = [
+    // Soft fill aimed at staircase so geometry reads
+    const fill = new THREE.DirectionalLight(0xffffff, 0.22);
+    fill.position.set(-10, 8, 6);
+    scene.add(fill);
+
+    // ---------------------------
+    // Data
+    // ---------------------------
+    const stepsText = [
       "The Enjoyment of Prosperity",
       "The Neglect of God’s Laws",
       "Ingratitude to God",
@@ -182,124 +146,239 @@
       "Persecution of the Lord’s Messengers",
     ];
 
-    // Color progression: Prosperity Green -> deeper/darker Warning Red
     const stepColors = [
-      new THREE.Color("#1fbf5b"), // Prosperity Green
+      new THREE.Color("#1fbf5b"),
       new THREE.Color("#77a833"),
       new THREE.Color("#a86a22"),
       new THREE.Color("#b8321f"),
-      new THREE.Color("#7a0b0b"), // Dark Warning Red
+      new THREE.Color("#7a0b0b"),
     ];
 
+    // ---------------------------
+    // Staircase
+    // ---------------------------
     const stair = new THREE.Group();
     scene.add(stair);
 
     const STEP_COUNT = 5;
     const stepW = 7.2, stepH = 1.0, stepD = 4.2;
-    const gapZ = 4.7;     // spacing to prevent overlap
-    const dropY = 1.35;   // vertical drop per stage
-    const steps = [];
+    const gapZ = 4.9;
+    const dropY = 1.35;
 
-    const geom = new THREE.BoxGeometry(stepW, stepH, stepD);
-    geom.computeVertexNormals();
+    const steps = [];
+    const labels = [];
+
+    const stepGeom = new THREE.BoxGeometry(stepW, stepH, stepD);
+
+    function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+      if (w < 2 * r) r = w / 2;
+      if (h < 2 * r) r = h / 2;
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (stroke) ctx.stroke();
+    }
+
+    function wrapText(ctx, text, maxWidth) {
+      const words = text.split(" ");
+      const lines = [];
+      let line = "";
+      for (let i = 0; i < words.length; i++) {
+        const test = line ? (line + " " + words[i]) : words[i];
+        if (ctx.measureText(test).width <= maxWidth) line = test;
+        else { lines.push(line); line = words[i]; }
+      }
+      if (line) lines.push(line);
+      if (lines.length > 3) {
+        const trimmed = lines.slice(0, 3);
+        trimmed[2] = trimmed[2].replace(/\s+$/, "") + "…";
+        return trimmed;
+      }
+      return lines;
+    }
+
+    function makeStepLabelTexture(stepIndex, text) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1024;
+      canvas.height = 512;
+      const ctx = canvas.getContext("2d");
+
+      // backplate
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      roundRect(ctx, 28, 40, canvas.width - 56, canvas.height - 80, 46, true, false);
+
+      // border
+      ctx.lineWidth = 7;
+      ctx.strokeStyle = "rgba(255,255,255,0.28)";
+      roundRect(ctx, 28, 40, canvas.width - 56, canvas.height - 80, 46, false, true);
+
+      // step badge
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      roundRect(ctx, 64, 78, 250, 96, 48, true, false);
+      ctx.font = "950 46px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.textBaseline = "middle";
+      ctx.fillText(`STEP ${stepIndex + 1}`, 94, 126);
+
+      // title
+      ctx.fillStyle = "rgba(255,255,255,0.99)";
+      ctx.font = "1000 58px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      const maxWidth = canvas.width - 140;
+      const lines = wrapText(ctx, text, maxWidth);
+      const startY = 248, lineH = 68;
+      for (let i = 0; i < lines.length; i++) ctx.fillText(lines[i], 76, startY + i * lineH);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
+      tex.needsUpdate = true;
+      return tex;
+    }
 
     for (let i = 0; i < STEP_COUNT; i++) {
       const mat = new THREE.MeshStandardMaterial({
         color: stepColors[i].clone(),
         roughness: 0.75,
         metalness: 0.05,
-        emissive: new THREE.Color("#000000"),
-        emissiveIntensity: 0.0
       });
 
-      const mesh = new THREE.Mesh(geom, mat);
-      // Arrange like a descending staircase along -Z, lowering in Y
+      const mesh = new THREE.Mesh(stepGeom, mat);
       mesh.position.set(0, -i * dropY, -i * gapZ);
-      mesh.castShadow = false;
-      mesh.receiveShadow = false;
       stair.add(mesh);
       steps.push(mesh);
+
+      const tex = makeStepLabelTexture(i, stepsText[i]);
+      const labelMat = new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        depthTest: false,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -4,
+        opacity: 1.0,
+        side: THREE.DoubleSide,
+      });
+
+      const labelGeom = new THREE.PlaneGeometry(7.2, 3.0);
+      const label = new THREE.Mesh(labelGeom, labelMat);
+
+      label.userData.stepIndex = i;
+      label.position.set(0, mesh.position.y + stepH/2 + 0.40, mesh.position.z + 0.18);
+      stair.add(label);
+      labels.push(label);
     }
 
-    // A dark floor far below to ground the scene (kept subtle)
-    const floorGeom = new THREE.PlaneGeometry(120, 220);
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x040406, roughness: 1.0, metalness: 0.0 });
+    // Floor (slightly lighter so it reflects forms)
+    const floorGeom = new THREE.PlaneGeometry(180, 300);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x07080b, roughness: 1.0, metalness: 0.0 });
     const floor = new THREE.Mesh(floorGeom, floorMat);
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -10;
-    floor.position.z = -40;
+    floor.position.z = -52;
     scene.add(floor);
 
-    // ---------- Camera positions & lookAt targets ----------
+    // ---------------------------
+    // Camera (third-person)
+    // ---------------------------
     function treadCenter(i) {
-      // Top face center of step i
       const s = steps[i];
       return new THREE.Vector3(s.position.x, s.position.y + stepH / 2, s.position.z);
     }
 
-    function cameraPoseForStep(i) {
-      const t = treadCenter(i);
-      // First-person-ish: slightly above tread, a bit behind it (toward +Z)
-      return new THREE.Vector3(t.x, t.y + 1.55, t.z + 3.15);
+    function virtualTreadCenterBeyondLast() {
+      const last = steps[STEP_COUNT - 1].position;
+      return new THREE.Vector3(last.x, last.y - dropY + stepH/2, last.z - gapZ);
     }
 
-    // Start at stage 0 looking at stage 0 tread
-    let currentStage = 0;
-    camera.position.copy(cameraPoseForStep(0));
-    camera.lookAt(treadCenter(0));
+    function thirdPersonPoseForStep(i) {
+      const t = treadCenter(i);
+      return new THREE.Vector3(t.x + 5.6, t.y + 4.2, t.z + 11.0);
+    }
 
-    // ---------- UI ----------
-    const stageNumEl = document.getElementById("stageNum");
-    const stageTextEl = document.getElementById("stageText");
+    function thirdPersonPoseForVoid() {
+      const t = virtualTreadCenterBeyondLast();
+      return new THREE.Vector3(t.x + 5.8, t.y + 4.4, t.z + 11.6);
+    }
+
+    function lookTargetForStep(i) {
+      const t = treadCenter(i);
+      return new THREE.Vector3(t.x, t.y + 0.6, t.z - 1.2);
+    }
+
+    function lookTargetForVoid() {
+      const t = virtualTreadCenterBeyondLast();
+      return new THREE.Vector3(t.x, t.y + 0.6, t.z - 1.2);
+    }
+
+    let currentStep = 0;
+    camera.position.copy(thirdPersonPoseForStep(0));
+    camera.lookAt(lookTargetForStep(0));
+
+    // ---------------------------
+    // UI
+    // ---------------------------
+    const stepNumEl = document.getElementById("stepNum");
+    const stepTextEl = document.getElementById("stepText");
     const btn = document.getElementById("btn");
 
-    function updateLabel() {
-      stageNumEl.textContent = `STAGE ${Math.min(currentStage + 1, 5)}/5`;
-      stageTextEl.textContent = stages[Math.min(currentStage, 4)];
+    function updateOverlayLabel() {
+      stepNumEl.textContent = `STEP ${Math.min(currentStep + 1, 5)}/5`;
+      stepTextEl.textContent = stepsText[Math.min(currentStep, 4)];
     }
-    updateLabel();
+    updateOverlayLabel();
 
-    // Fade previous steps into darkness so current/next step reads clearly
+    // Only show current label + faint next label
     function updateStepVisibility(instant = false) {
       for (let i = 0; i < STEP_COUNT; i++) {
         const mat = steps[i].material;
-        const isPast = i < currentStage;
-        const isCurrentOrFuture = i >= currentStage;
+        const label = labels[i];
+        const lmat = label.material;
 
-        const targetColor = stepColors[i].clone();
-        const targetEmissiveIntensity = 0.0;
+        const isPast = i < currentStep;
+        const isCurrent = i === currentStep;
+        const isNext = i === currentStep + 1;
 
-        // Past steps: dim strongly (keep their hue but darken)
-        const dimFactor = isPast ? 0.14 : 1.0;
-        const finalColor = targetColor.multiplyScalar(dimFactor);
+        // Less aggressive dimming so the staircase remains readable
+        const base = stepColors[i].clone();
+        const dimFactor = isPast ? 0.35 : 1.0; // <- brighter history
+        const finalColor = base.multiplyScalar(dimFactor);
 
-        const to = {
-          r: finalColor.r,
-          g: finalColor.g,
-          b: finalColor.b,
-          e: targetEmissiveIntensity
-        };
+        const shouldShow = isCurrent || isNext;
+        const labelOpacity = isCurrent ? 1.0 : (isNext ? 0.16 : 0.0);
 
         if (instant) {
-          mat.color.setRGB(to.r, to.g, to.b);
-          mat.emissiveIntensity = to.e;
+          mat.color.copy(finalColor);
+          label.visible = shouldShow;
+          lmat.opacity = labelOpacity;
         } else {
-          gsap.to(mat.color, { r: to.r, g: to.g, b: to.b, duration: 0.55, ease: "power2.out" });
-          gsap.to(mat, { emissiveIntensity: to.e, duration: 0.55, ease: "power2.out" });
-        }
+          gsap.to(mat.color, { r: finalColor.r, g: finalColor.g, b: finalColor.b, duration: 0.8, ease: "power2.out" });
 
-        // Slightly “hint” the next step by a tiny emissive pulse
-        if (isCurrentOrFuture && i === currentStage) {
-          gsap.to(mat, { emissiveIntensity: 0.06, duration: 0.4, yoyo: true, repeat: 1, ease: "sine.inOut" });
+          label.visible = true;
+          gsap.to(lmat, {
+            opacity: labelOpacity,
+            duration: 0.6,
+            ease: "power2.out",
+            onComplete: () => { label.visible = shouldShow; }
+          });
+
+          if (isCurrent) {
+            gsap.fromTo(lmat, { opacity: 0.72 }, { opacity: 1.0, duration: 0.35, ease: "sine.out" });
+          }
         }
       }
     }
     updateStepVisibility(true);
 
-    // ---------- Curved camera descent ----------
+    // ---------------------------
+    // Smooth camera arc
+    // ---------------------------
     let isMoving = false;
 
-    function moveCameraArc(from, control, to, lookTarget, duration = 1.25) {
+    function moveCameraArc(from, control, to, lookFrom, lookTo, duration = 1.85, onDone = null) {
       isMoving = true;
       btn.disabled = true;
 
@@ -307,139 +386,228 @@
       return gsap.to(state, {
         t: 1,
         duration,
-        ease: "power2.inOut",
+        ease: "power3.inOut",
         onUpdate: () => {
           const t = state.t;
-          // Quadratic Bezier: B(t) = (1-t)^2*P0 + 2(1-t)t*P1 + t^2*P2
           const one = 1 - t;
+
           const x = one*one*from.x + 2*one*t*control.x + t*t*to.x;
           const y = one*one*from.y + 2*one*t*control.y + t*t*to.y;
           const z = one*one*from.z + 2*one*t*control.z + t*t*to.z;
           camera.position.set(x, y, z);
 
-          // Always face the tread of the NEXT step during descent
-          camera.lookAt(lookTarget);
+          const lx = lookFrom.x + (lookTo.x - lookFrom.x) * t;
+          const ly = lookFrom.y + (lookTo.y - lookFrom.y) * t;
+          const lz = lookFrom.z + (lookTo.z - lookFrom.z) * t;
+          camera.lookAt(lx, ly, lz);
         },
         onComplete: () => {
+          camera.position.copy(to);
+          camera.lookAt(lookTo);
           isMoving = false;
           btn.disabled = false;
+          if (onDone) onDone();
         }
       });
     }
 
-    function goNextStage() {
+    function goNextStep() {
       if (isMoving) return;
 
-      if (currentStage < STEP_COUNT - 1) {
-        const nextStage = currentStage + 1;
+      if (currentStep < STEP_COUNT - 1) {
+        const next = currentStep + 1;
 
         const from = camera.position.clone();
-        const to = cameraPoseForStep(nextStage);
-
-        // Control point: arc upward and slightly to the side so it feels like a step-down curve
+        const to = thirdPersonPoseForStep(next);
         const mid = from.clone().lerp(to, 0.5);
-        const control = mid.clone().add(new THREE.Vector3(
-          (nextStage % 2 === 0 ? 0.9 : -0.9),  // subtle side sway
-          1.15,                                 // lift for the arc
-          0.25                                  // tiny forward bias
-        ));
+        const control = mid.clone().add(new THREE.Vector3(1.8, 3.4, 2.4));
 
-        currentStage = nextStage;
-        updateLabel();
+        const lookFrom = lookTargetForStep(currentStep);
+        const lookTo = lookTargetForStep(next);
+
+        currentStep = next;
+        updateOverlayLabel();
         updateStepVisibility(false);
 
-        const lookTarget = treadCenter(nextStage);
-        moveCameraArc(from, control, to, lookTarget, 1.2);
+        moveCameraArc(from, control, to, lookFrom, lookTo, 1.85);
 
-        if (currentStage === STEP_COUNT - 1) {
-          btn.textContent = "Trigger Disaster";
-        }
+        if (currentStep === STEP_COUNT - 1) btn.textContent = "Trigger Disaster";
       } else {
-        triggerDisaster();
+        triggerPreDisasterStep();
       }
     }
 
-    btn.addEventListener("click", goNextStage);
+    btn.addEventListener("click", goNextStep);
 
-    // ---------- Disaster event ----------
+    // ---------------------------
+    // Labels: billboard + distance scaling (fills screen better)
+    // ---------------------------
+    const labelUpTilt = -Math.PI / 3.4;
+    const baseNormal = new THREE.Vector3(0, 0, 1);
+    const tmpNormal = new THREE.Vector3();
+
+    function updateLabelBillboards() {
+      for (let i = 0; i < labels.length; i++) {
+        const label = labels[i];
+        if (!label.visible) continue;
+
+        const si = label.userData.stepIndex;
+        const step = steps[si];
+
+        label.position.set(0, step.position.y + stepH/2 + 0.42, step.position.z + 0.20);
+
+        label.quaternion.copy(camera.quaternion);
+        label.rotateX(labelUpTilt);
+
+        const dist = camera.position.distanceTo(label.position);
+        const s = THREE.MathUtils.clamp(dist * 0.095, 1.35, 2.95);
+        label.scale.setScalar(s);
+
+        tmpNormal.copy(baseNormal).applyQuaternion(label.quaternion);
+        label.position.addScaledVector(tmpNormal, 0.10);
+      }
+    }
+
+    // ---------------------------
+    // Disaster sequence (pre-step + shake + dance + dolly)
+    // ---------------------------
     const disasterOverlay = document.getElementById("disasterOverlay");
     const disasterText = disasterOverlay.querySelector(".text");
     const disasterFlash = disasterOverlay.querySelector(".backflash");
 
-    function triggerDisaster() {
+    function triggerPreDisasterStep() {
       if (isMoving) return;
+
       isMoving = true;
       btn.disabled = true;
+      btn.textContent = "…";
 
-      // Harden lighting for dramatic contrast
-      gsap.to(flashlight, { intensity: 3.2, duration: 0.15, yoyo: true, repeat: 1, ease: "power1.inOut" });
+      const from = camera.position.clone();
+      const to = thirdPersonPoseForVoid();
+      const mid = from.clone().lerp(to, 0.5);
+      const control = mid.clone().add(new THREE.Vector3(2.0, 3.8, 2.8));
 
-      // Camera shake: rapid randomized offsets around current position
+      const lookFrom = lookTargetForStep(4);
+      const lookTo = lookTargetForVoid();
+
+      const state = { t: 0 };
+      gsap.to(state, {
+        t: 1,
+        duration: 1.25,
+        ease: "power3.inOut",
+        onUpdate: () => {
+          const t = state.t;
+          const one = 1 - t;
+
+          const x = one*one*from.x + 2*one*t*control.x + t*t*to.x;
+          const y = one*one*from.y + 2*one*t*control.y + t*t*to.y;
+          const z = one*one*from.z + 2*one*t*control.z + t*t*to.z;
+          camera.position.set(x, y, z);
+
+          const lx = lookFrom.x + (lookTo.x - lookFrom.x) * t;
+          const ly = lookFrom.y + (lookTo.y - lookFrom.y) * t;
+          const lz = lookFrom.z + (lookTo.z - lookFrom.z) * t;
+          camera.lookAt(lx, ly, lz);
+        },
+        onComplete: () => {
+          camera.position.copy(to);
+          camera.lookAt(lookTo);
+          doDisaster(lookTo);
+        }
+      });
+    }
+
+    function doDisaster(lookTarget) {
+      gsap.to(flashlight, { intensity: 3.6, duration: 0.14, yoyo: true, repeat: 1, ease: "power1.inOut" });
+
       const basePos = camera.position.clone();
       const shake = { x: 0, y: 0, z: 0 };
 
-      const shakeTl = gsap.timeline({
+      gsap.timeline({
         onUpdate: () => {
           camera.position.set(basePos.x + shake.x, basePos.y + shake.y, basePos.z + shake.z);
-          camera.lookAt(treadCenter(4));
+          camera.lookAt(lookTarget);
+        }
+      })
+      .to(shake, { x:  0.22, y: -0.14, z:  0.12, duration: 0.05, ease: "none" })
+      .to(shake, { x: -0.30, y:  0.20, z: -0.16, duration: 0.05, ease: "none" })
+      .to(shake, { x:  0.36, y: -0.24, z:  0.18, duration: 0.05, ease: "none" })
+      .to(shake, { x: -0.40, y:  0.28, z: -0.22, duration: 0.05, ease: "none" })
+      .to(shake, { x:  0.26, y: -0.18, z:  0.10, duration: 0.05, ease: "none" })
+      .to(shake, { x:  0.00, y:  0.00, z:  0.00, duration: 0.14, ease: "power2.out" });
+
+      // Keep some visibility even during disaster
+      gsap.to(scene.fog, { density: 0.030, duration: 1.0, ease: "power2.out" });
+
+      const overlayTl = gsap.timeline({ delay: 0.06 });
+      overlayTl
+        .set(disasterOverlay, { opacity: 1 })
+        .set(disasterText, { x: 0, y: 0, rotation: 0, transformOrigin: "50% 50%" })
+        .to(disasterFlash, { opacity: 1, duration: 0.12, ease: "power1.out" }, 0)
+        .to(disasterFlash, { opacity: 0.82, duration: 0.35, ease: "power2.out" }, 0.12)
+        .to(disasterText,  { opacity: 1, scale: 1.02, duration: 0.20, ease: "power4.out" }, 0.08)
+        .to(disasterText, {
+          duration: 1.4,
+          ease: "sine.inOut",
+          keyframes: [
+            { scale: 1.08, x: -18, y:  10, rotation: -1.2, duration: 0.22 },
+            { scale: 0.98, x:  14, y: -8,  rotation:  0.9, duration: 0.22 },
+            { scale: 1.10, x: -10, y: -6,  rotation: -0.8, duration: 0.24 },
+            { scale: 1.00, x:  8,  y:  6,  rotation:  0.6, duration: 0.24 },
+            { scale: 1.06, x:  0,  y:  0,  rotation:  0.0, duration: 0.48 },
+          ]
+        }, 0.34);
+
+      const dolly = { d: 0 };
+      const dir = new THREE.Vector3();
+      camera.getWorldDirection(dir);
+
+      gsap.to(dolly, {
+        d: 1,
+        duration: 1.2,
+        yoyo: true,
+        repeat: 1,
+        ease: "sine.inOut",
+        onUpdate: () => {
+          const amt = (dolly.d - 0.5) * 0.9;
+          camera.position.copy(basePos).addScaledVector(dir, amt);
+          camera.lookAt(lookTarget);
         }
       });
 
-      shakeTl.to(shake, { x:  0.18, y: -0.12, z:  0.10, duration: 0.05, ease: "none" })
-             .to(shake, { x: -0.22, y:  0.16, z: -0.08, duration: 0.05, ease: "none" })
-             .to(shake, { x:  0.26, y: -0.18, z:  0.14, duration: 0.05, ease: "none" })
-             .to(shake, { x: -0.30, y:  0.22, z: -0.12, duration: 0.05, ease: "none" })
-             .to(shake, { x:  0.20, y: -0.14, z:  0.06, duration: 0.05, ease: "none" })
-             .to(shake, { x:  0.00, y:  0.00, z:  0.00, duration: 0.10, ease: "power2.out" });
-
-      // Overlay explosion
-      const overlayTl = gsap.timeline({ delay: 0.05 });
-      overlayTl
-        .set(disasterOverlay, { opacity: 1 })
-        .to(disasterFlash, { opacity: 1, duration: 0.12, ease: "power1.out" }, 0)
-        .to(disasterFlash, { opacity: 0.75, duration: 0.35, ease: "power2.out" }, 0.12)
-        .to(disasterText,  { opacity: 1, scale: 1.0, duration: 0.22, ease: "power4.out" }, 0.08)
-        .to(disasterText,  { scale: 1.08, duration: 0.28, ease: "sine.inOut" }, 0.30)
-        .to(disasterText,  { scale: 1.02, duration: 0.45, ease: "power2.out" }, 0.58);
-
-      // Final UI state
       btn.textContent = "Disaster Triggered";
-      stageNumEl.textContent = "STAGE 5/5";
-      stageTextEl.textContent = "National Disaster";
-
-      // Dim scene a bit after impact
-      gsap.to(scene.fog, { density: 0.09, duration: 1.0, ease: "power2.out" });
+      stepNumEl.textContent = "STEP 5/5";
+      stepTextEl.textContent = "National Disaster";
     }
 
-    // ---------- Render loop ----------
+    // ---------------------------
+    // Render loop
+    // ---------------------------
     const clock = new THREE.Clock();
-
     function animate() {
       requestAnimationFrame(animate);
-      const dt = clock.getDelta();
 
-      // A tiny, slow “breathing” of light for seriousness (very subtle)
-      flashlight.intensity += Math.sin(clock.elapsedTime * 0.9) * 0.002;
-
+      flashlight.intensity += Math.sin(clock.elapsedTime * 0.9) * 0.0010;
+      updateLabelBillboards();
       renderer.render(scene, camera);
     }
     animate();
 
-    // ---------- Responsiveness ----------
+    // ---------------------------
+    // Responsiveness + keyboard
+    // ---------------------------
     window.addEventListener("resize", () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      const w = window.innerWidth, h = window.innerHeight;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     });
 
-    // Optional: keyboard support (Space/Enter)
     window.addEventListener("keydown", (e) => {
       if (e.code === "Space" || e.code === "Enter") {
         e.preventDefault();
-        goNextStage();
+        goNextStep();
       }
     });
   </script>

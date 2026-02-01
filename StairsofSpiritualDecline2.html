@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>The Word of Warning — 3D Visual Aid</title>
+  <style>
+    :root{
+      --bg:#050608;
+      --panel:rgba(12,14,18,.72);
+      --panel-border:rgba(255,255,255,.12);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.70);
+    }
+    html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    #app{position:fixed;inset:0}
+    canvas{display:block;width:100%;height:100%}
+
+    #ui{
+      position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
+      width:min(980px,calc(100% - 28px));
+      display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;
+      padding:16px;border-radius:18px;
+      background:var(--panel);border:1px solid var(--panel-border);
+      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+      box-shadow:0 12px 44px rgba(0,0,0,.5);
+      user-select:none;z-index:10;
+    }
+    #stepLabel{display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;line-height:1.15;color:var(--text);}
+    #stepNum{
+      font-weight:950;letter-spacing:.10em;
+      font-size:clamp(13px,2vw,16px);
+      color:rgba(255,255,255,.78);
+      padding:.25em .55em;border-radius:999px;
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.06);
+    }
+    #stepText{
+      font-weight:900;
+      font-size:clamp(18px,3vw,26px);
+      letter-spacing:.02em;
+      text-shadow:0 10px 30px rgba(0,0,0,.6);
+    }
+    #btn{
+      appearance:none;border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.10);color:var(--text);
+      padding:12px 16px;border-radius:16px;
+      font-weight:900;cursor:pointer;
+      transition:transform 140ms ease, background 140ms ease, border-color 140ms ease, opacity 140ms ease;
+      min-width:160px;text-align:center;white-space:nowrap;
+    }
+    #btn:hover{transform:translateY(-1px);background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.24)}
+    #btn:active{transform:translateY(0px) scale(.99)}
+    #btn[disabled]{opacity:.45;cursor:not-allowed}
+
+    #disasterOverlay{
+      position:fixed;inset:0;display:grid;place-items:center;
+      pointer-events:none;opacity:0;z-index:20;
+    }
+    #disasterOverlay .backflash{
+      position:absolute;inset:0;
+      background:radial-gradient(circle at 50% 50%,
+        rgba(255,40,40,.28),
+        rgba(255,10,10,.12) 40%,
+        rgba(0,0,0,.92) 75%);
+      opacity:0;transform:scale(1.06);
+    }
+    #disasterOverlay .text{
+      position:relative;
+      font-weight:1000;letter-spacing:.18em;
+      color:rgba(255,45,45,.98);
+      text-shadow:0 0 18px rgba(255,50,50,.35),
+                  0 0 60px rgba(255,50,50,.20),
+                  0 18px 90px rgba(0,0,0,.65);
+      font-size:clamp(44px,11vw,140px);
+      transform:scale(.35);
+      opacity:0;
+      will-change: transform;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <div id="ui" role="group" aria-label="Lesson controls">
+    <div id="stepLabel" aria-live="polite">
+      <span id="stepNum">STEP 1/5</span>
+      <span id="stepText">The Enjoyment of Prosperity</span>
+    </div>
+    <button id="btn" type="button">Next Step</button>
+  </div>
+
+  <div id="disasterOverlay" aria-hidden="true">
+    <div class="backflash"></div>
+    <div class="text">DISASTER</div>
+  </div>
+
+  <script type="module">
+    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+    import { gsap } from "https://cdn.skypack.dev/gsap@3.12.5";
+
+    // ---------------------------
+    // Scene setup (better for big displays)
+    // ---------------------------
+    const container = document.getElementById("app");
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+
+    // allow a bit more DPR on big screens (still capped)
+    const DPR_CAP = 2.5;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, DPR_CAP));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x07080b, 1);
+
+    // proper color space for crisp UI textures
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    container.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x07080b, 0.018);
+
+    const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.05, 260);
+
+    const flashlight = new THREE.PointLight(0xffffff, 2.4, 70, 2.0);
+    flashlight.position.set(0.2, 0.35, 0.55);
+    camera.add(flashlight);
+    scene.add(camera);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.16));
+    scene.add(new THREE.HemisphereLight(0x6c92ff, 0x220000, 0.20));
+
+    const rim = new THREE.DirectionalLight(0xffffff, 0.30);
+    rim.position.set(10, 14, 12);
+    scene.add(rim);
+
+    const fill = new THREE.DirectionalLight(0xffffff, 0.22);
+    fill.position.set(-10, 8, 6);
+    scene.add(fill);
+
+    // ---------------------------
+    // Data
+    // ---------------------------
+    const stepsText = [
+      "The Enjoyment of Prosperity",
+      "The Neglect of God’s Laws",
+      "Ingratitude to God",
+      "Flirtation with Other Gods",
+      "Persecution of the Lord’s Messengers",
+    ];
+
+    const stepColors = [
+      new THREE.Color("#1fbf5b"),
+      new THREE.Color("#77a833"),
+      new THREE.Color("#a86a22"),
+      new THREE.Color("#b8321f"),
+      new THREE.Color("#7a0b0b"),
+    ];
+
+    // ---------------------------
+    // Staircase
+    // ---------------------------
+    const stair = new THREE.Group();
+    scene.add(stair);
+
+    const STEP_COUNT = 5;
+    const stepW = 7.2, stepH = 1.0, stepD = 4.2;
+    const gapZ = 4.9;
+    const dropY = 1.35;
+
+    const steps = [];
+    const labels = [];
+
+    const stepGeom = new THREE.BoxGeometry(stepW, stepH, stepD);
+
+    function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+      if (w < 2 * r) r = w / 2;
+      if (h < 2 * r) r = h / 2;
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (stroke) ctx.stroke();
+    }
+
+    function wrapText(ctx, text, maxWidth) {
+      const words = text.split(" ");
+      const lines = [];
+      let line = "";
+      for (let i = 0; i < words.length; i++) {
+        const test = line ? (line + " " + words[i]) : words[i];
+        if (ctx.measureText(test).width <= maxWidth) line = test;
+        else { lines.push(line); line = words[i]; }
+      }
+      if (line) lines.push(line);
+      if (lines.length > 3) {
+        const trimmed = lines.slice(0, 3);
+        trimmed[2] = trimmed[2].replace(/\s+$/, "") + "…";
+        return trimmed;
+      }
+      return lines;
+    }
+
+    // High-res, DPR-aware label texture
+    function makeStepLabelTexture(stepIndex, text) {
+      const baseW = 2048, baseH = 1024;                // higher than before
+      const dpr = Math.min(window.devicePixelRatio || 1, 2); // cap texture DPR for memory
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.floor(baseW * dpr);
+      canvas.height = Math.floor(baseH * dpr);
+
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw in baseW/baseH coordinates
+
+      // backplate
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      roundRect(ctx, 56, 70, baseW - 112, baseH - 140, 72, true, false);
+
+      // border
+      ctx.lineWidth = 12;
+      ctx.strokeStyle = "rgba(255,255,255,0.28)";
+      roundRect(ctx, 56, 70, baseW - 112, baseH - 140, 72, false, true);
+
+      // step badge
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      roundRect(ctx, 120, 130, 420, 150, 75, true, false);
+      ctx.font = "950 74px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.textBaseline = "middle";
+      ctx.fillText(`STEP ${stepIndex + 1}`, 170, 205);
+
+      // title
+      ctx.fillStyle = "rgba(255,255,255,0.99)";
+      ctx.font = "1000 92px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      const maxWidth = baseW - 280;
+      const lines = wrapText(ctx, text, maxWidth);
+      const startY = 420, lineH = 108;
+      for (let i = 0; i < lines.length; i++) ctx.fillText(lines[i], 150, startY + i * lineH);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
+
+      // Better sampling on big screens
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.generateMipmaps = true;
+      tex.needsUpdate = true;
+
+      return tex;
+    }
+
+    // Larger base plane (then we screen-scale it)
+    const LABEL_W = 7.8;
+    const LABEL_H = 3.25;
+
+    for (let i = 0; i < STEP_COUNT; i++) {
+      const mat = new THREE.MeshStandardMaterial({
+        color: stepColors[i].clone(),
+        roughness: 0.75,
+        metalness: 0.05,
+      });
+
+      const mesh = new THREE.Mesh(stepGeom, mat);
+      mesh.position.set(0, -i * dropY, -i * gapZ);
+      stair.add(mesh);
+      steps.push(mesh);
+
+      const tex = makeStepLabelTexture(i, stepsText[i]);
+      const labelMat = new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        depthTest: false,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -4,
+        opacity: 1.0,
+        side: THREE.DoubleSide,
+      });
+
+      const labelGeom = new THREE.PlaneGeometry(LABEL_W, LABEL_H);
+      const label = new THREE.Mesh(labelGeom, labelMat);
+
+      label.userData.stepIndex = i;
+      label.position.set(0, mesh.position.y + stepH/2 + 0.42, mesh.position.z + 0.20);
+      stair.add(label);
+      labels.push(label);
+    }
+
+    const floorGeom = new THREE.PlaneGeometry(180, 300);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x07080b, roughness: 1.0, metalness: 0.0 });
+    const floor = new THREE.Mesh(floorGeom, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -10;
+    floor.position.z = -52;
+    scene.add(floor);
+
+    // ---------------------------
+    // Camera
+    // ---------------------------
+    function treadCenter(i) {
+      const s = steps[i];
+      return new THREE.Vector3(s.position.x, s.position.y + stepH / 2, s.position.z);
+    }
+
+    function virtualTreadCenterBeyondLast() {
+      const last = steps[STEP_COUNT - 1].position;
+      return new THREE.Vector3(last.x, last.y - dropY + stepH/2, last.z - gapZ);
+    }
+
+    function thirdPersonPoseForStep(i) {
+      const t = treadCenter(i);
+      return new THREE.Vector3(t.x + 5.6, t.y + 4.2, t.z + 11.0);
+    }
+
+    function thirdPersonPoseForVoid() {
+      const t = virtualTreadCenterBeyondLast();
+      return new THREE.Vector3(t.x + 5.8, t.y + 4.4, t.z + 11.6);
+    }
+
+    function lookTargetForStep(i) {
+      const t = treadCenter(i);
+      return new THREE.Vector3(t.x, t.y + 0.6, t.z - 1.2);
+    }
+
+    function lookTargetForVoid() {
+      const t = virtualTreadCenterBeyondLast();
+      return new THREE.Vector3(t.x, t.y + 0.6, t.z - 1.2);
+    }
+
+    let currentStep = 0;
+    camera.position.copy(thirdPersonPoseForStep(0));
+    camera.lookAt(lookTargetForStep(0));
+
+    // ---------------------------
+    // UI
+    // ---------------------------
+    const stepNumEl = document.getElementById("stepNum");
+    const stepTextEl = document.getElementById("stepText");
+    const btn = document.getElementById("btn");
+
+    function updateOverlayLabel() {
+      stepNumEl.textContent = `STEP ${Math.min(currentStep + 1, 5)}/5`;
+      stepTextEl.textContent = stepsText[Math.min(currentStep, 4)];
+    }
+    updateOverlayLabel();
+
+    function updateStepVisibility(instant = false) {
+      for (let i = 0; i < STEP_COUNT; i++) {
+        const mat = steps[i].material;
+        const label = labels[i];
+        const lmat = label.material;
+
+        const isPast = i < currentStep;
+        const isCurrent = i === currentStep;
+        const isNext = i === currentStep + 1;
+
+        const base = stepColors[i].clone();
+        const dimFactor = isPast ? 0.35 : 1.0;
+        const finalColor = base.multiplyScalar(dimFactor);
+
+        const shouldShow = isCurrent || isNext;
+        const labelOpacity = isCurrent ? 1.0 : (isNext ? 0.16 : 0.0);
+
+        if (instant) {
+          mat.color.copy(finalColor);
+          label.visible = shouldShow;
+          lmat.opacity = labelOpacity;
+        } else {
+          gsap.to(mat.color, { r: finalColor.r, g: finalColor.g, b: finalColor.b, duration: 0.8, ease: "power2.out" });
+
+          label.visible = true;
+          gsap.to(lmat, {
+            opacity: labelOpacity,
+            duration: 0.6,
+            ease: "power2.out",
+            onComplete: () => { label.visible = shouldShow; }
+          });
+
+          if (isCurrent) gsap.fromTo(lmat, { opacity: 0.72 }, { opacity: 1.0, duration: 0.35, ease: "sine.out" });
+        }
+      }
+    }
+    updateStepVisibility(true);
+
+    // ---------------------------
+    // Smooth camera arc
+    // ---------------------------
+    let isMoving = false;
+
+    function moveCameraArc(from, control, to, lookFrom, lookTo, duration = 1.85, onDone = null) {
+      isMoving = true;
+      btn.disabled = true;
+
+      const state = { t: 0 };
+      return gsap.to(state, {
+        t: 1,
+        duration,
+        ease: "power3.inOut",
+        onUpdate: () => {
+          const t = state.t;
+          const one = 1 - t;
+
+          const x = one*one*from.x + 2*one*t*control.x + t*t*to.x;
+          const y = one*one*from.y + 2*one*t*control.y + t*t*to.y;
+          const z = one*one*from.z + 2*one*t*control.z + t*t*to.z;
+          camera.position.set(x, y, z);
+
+          const lx = lookFrom.x + (lookTo.x - lookFrom.x) * t;
+          const ly = lookFrom.y + (lookTo.y - lookFrom.y) * t;
+          const lz = lookFrom.z + (lookTo.z - lookFrom.z) * t;
+          camera.lookAt(lx, ly, lz);
+        },
+        onComplete: () => {
+          camera.position.copy(to);
+          camera.lookAt(lookTo);
+          isMoving = false;
+          btn.disabled = false;
+          if (onDone) onDone();
+        }
+      });
+    }
+
+    function goNextStep() {
+      if (isMoving) return;
+
+      if (currentStep < STEP_COUNT - 1) {
+        const next = currentStep + 1;
+
+        const from = camera.position.clone();
+        const to = thirdPersonPoseForStep(next);
+        const mid = from.clone().lerp(to, 0.5);
+        const control = mid.clone().add(new THREE.Vector3(1.8, 3.4, 2.4));
+
+        const lookFrom = lookTargetForStep(currentStep);
+        const lookTo = lookTargetForStep(next);
+
+        currentStep = next;
+        updateOverlayLabel();
+        updateStepVisibility(false);
+
+        moveCameraArc(from, control, to, lookFrom, lookTo, 1.85);
+
+        if (currentStep === STEP_COUNT - 1) btn.textContent = "Trigger Disaster";
+      } else {
+        triggerPreDisasterStep();
+      }
+    }
+
+    btn.addEventListener("click", goNextStep);
+
+    // ---------------------------
+    // Labels: billboard + SCREEN-SPACE scaling
+    // ---------------------------
+    const labelUpTilt = -Math.PI / 3.4;
+    const baseNormal = new THREE.Vector3(0, 0, 1);
+    const tmpNormal = new THREE.Vector3();
+
+    // Target: label should be ~22% of screen height (tweak this if desired)
+    const TARGET_SCREEN_HEIGHT_FRACTION = 0.22;
+
+    function updateLabelBillboards() {
+      const fovRad = THREE.MathUtils.degToRad(camera.fov);
+
+      for (let i = 0; i < labels.length; i++) {
+        const label = labels[i];
+        if (!label.visible) continue;
+
+        const si = label.userData.stepIndex;
+        const step = steps[si];
+
+        label.position.set(0, step.position.y + stepH/2 + 0.42, step.position.z + 0.20);
+
+        label.quaternion.copy(camera.quaternion);
+        label.rotateX(labelUpTilt);
+
+        // Screen-space scale: world height at distance = 2*dist*tan(fov/2)
+        const dist = camera.position.distanceTo(label.position);
+        const worldScreenH = 2 * dist * Math.tan(fovRad * 0.5);
+        const desiredWorldH = worldScreenH * TARGET_SCREEN_HEIGHT_FRACTION;
+
+        // Our plane is LABEL_H units tall. Scale so it occupies desired world height.
+        const scale = THREE.MathUtils.clamp(desiredWorldH / LABEL_H, 1.1, 4.2);
+        label.scale.setScalar(scale);
+
+        // Push outward so it never visually intersects
+        tmpNormal.copy(baseNormal).applyQuaternion(label.quaternion);
+        label.position.addScaledVector(tmpNormal, 0.10);
+      }
+    }
+
+    // ---------------------------
+    // Disaster (unchanged from your prior “dance” version)
+    // ---------------------------
+    const disasterOverlay = document.getElementById("disasterOverlay");
+    const disasterText = disasterOverlay.querySelector(".text");
+    const disasterFlash = disasterOverlay.querySelector(".backflash");
+
+    function triggerPreDisasterStep() {
+      if (isMoving) return;
+
+      isMoving = true;
+      btn.disabled = true;
+      btn.textContent = "…";
+
+      const from = camera.position.clone();
+      const to = thirdPersonPoseForVoid();
+      const mid = from.clone().lerp(to, 0.5);
+      const control = mid.clone().add(new THREE.Vector3(2.0, 3.8, 2.8));
+
+      const lookFrom = lookTargetForStep(4);
+      const lookTo = lookTargetForVoid();
+
+      const state = { t: 0 };
+      gsap.to(state, {
+        t: 1,
+        duration: 1.25,
+        ease: "power3.inOut",
+        onUpdate: () => {
+          const t = state.t;
+          const one = 1 - t;
+          const x = one*one*from.x + 2*one*t*control.x + t*t*to.x;
+          const y = one*one*from.y + 2*one*t*control.y + t*t*to.y;
+          const z = one*one*from.z + 2*one*t*control.z + t*t*to.z;
+          camera.position.set(x, y, z);
+
+          const lx = lookFrom.x + (lookTo.x - lookFrom.x) * t;
+          const ly = lookFrom.y + (lookTo.y - lookFrom.y) * t;
+          const lz = lookFrom.z + (lookTo.z - lookFrom.z) * t;
+          camera.lookAt(lx, ly, lz);
+        },
+        onComplete: () => {
+          camera.position.copy(to);
+          camera.lookAt(lookTo);
+          doDisaster(lookTo);
+        }
+      });
+    }
+
+    function doDisaster(lookTarget) {
+      gsap.to(flashlight, { intensity: 3.6, duration: 0.14, yoyo: true, repeat: 1, ease: "power1.inOut" });
+
+      const basePos = camera.position.clone();
+      const shake = { x: 0, y: 0, z: 0 };
+
+      gsap.timeline({
+        onUpdate: () => {
+          camera.position.set(basePos.x + shake.x, basePos.y + shake.y, basePos.z + shake.z);
+          camera.lookAt(lookTarget);
+        }
+      })
+      .to(shake, { x:  0.22, y: -0.14, z:  0.12, duration: 0.05, ease: "none" })
+      .to(shake, { x: -0.30, y:  0.20, z: -0.16, duration: 0.05, ease: "none" })
+      .to(shake, { x:  0.36, y: -0.24, z:  0.18, duration: 0.05, ease: "none" })
+      .to(shake, { x: -0.40, y:  0.28, z: -0.22, duration: 0.05, ease: "none" })
+      .to(shake, { x:  0.26, y: -0.18, z:  0.10, duration: 0.05, ease: "none" })
+      .to(shake, { x:  0.00, y:  0.00, z:  0.00, duration: 0.14, ease: "power2.out" });
+
+      gsap.to(scene.fog, { density: 0.030, duration: 1.0, ease: "power2.out" });
+
+      const overlayTl = gsap.timeline({ delay: 0.06 });
+      overlayTl
+        .set(disasterOverlay, { opacity: 1 })
+        .set(disasterText, { x: 0, y: 0, rotation: 0, transformOrigin: "50% 50%" })
+        .to(disasterFlash, { opacity: 1, duration: 0.12, ease: "power1.out" }, 0)
+        .to(disasterFlash, { opacity: 0.82, duration: 0.35, ease: "power2.out" }, 0.12)
+        .to(disasterText,  { opacity: 1, scale: 1.02, duration: 0.20, ease: "power4.out" }, 0.08)
+        .to(disasterText, {
+          duration: 1.4,
+          ease: "sine.inOut",
+          keyframes: [
+            { scale: 1.08, x: -18, y:  10, rotation: -1.2, duration: 0.22 },
+            { scale: 0.98, x:  14, y: -8,  rotation:  0.9, duration: 0.22 },
+            { scale: 1.10, x: -10, y: -6,  rotation: -0.8, duration: 0.24 },
+            { scale: 1.00, x:  8,  y:  6,  rotation:  0.6, duration: 0.24 },
+            { scale: 1.06, x:  0,  y:  0,  rotation:  0.0, duration: 0.48 },
+          ]
+        }, 0.34);
+
+      const dolly = { d: 0 };
+      const dir = new THREE.Vector3();
+      camera.getWorldDirection(dir);
+
+      gsap.to(dolly, {
+        d: 1,
+        duration: 1.2,
+        yoyo: true,
+        repeat: 1,
+        ease: "sine.inOut",
+        onUpdate: () => {
+          const amt = (dolly.d - 0.5) * 0.9;
+          camera.position.copy(basePos).addScaledVector(dir, amt);
+          camera.lookAt(lookTarget);
+        }
+      });
+
+      btn.textContent = "Disaster Triggered";
+      stepNumEl.textContent = "STEP 5/5";
+      stepTextEl.textContent = "National Disaster";
+    }
+
+    // ---------------------------
+    // Render loop
+    // ---------------------------
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      flashlight.intensity += Math.sin(clock.elapsedTime * 0.9) * 0.0010;
+      updateLabelBillboards();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // ---------------------------
+    // Responsiveness
+    // ---------------------------
+    function onResize() {
+      const w = window.innerWidth, h = window.innerHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, DPR_CAP));
+    }
+    window.addEventListener("resize", onResize);
+
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space" || e.code === "Enter") {
+        e.preventDefault();
+        goNextStep();
+      }
+    });
+  </script>
+</body>
+</html>
